@@ -44,17 +44,6 @@ namespace MultisiteRecycleBin
 
         private void DeleteEvent_MovedContent(object sender, EPiServer.ContentEventArgs e)
         {
-            //if (e.TargetLink.CompareToIgnoreWorkID(ContentReference.WasteBasket) && !(e.Content is ITrashBin))
-            //{
-            //    var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
-
-            //    var siteTrashBin = contentRepository.GetChildren<PageData>(SiteDefinition.Current.StartPage)
-            //        .OfType<ITrashBin>()
-            //        .FirstOrDefault();
-
-            //    if (siteTrashBin != null && !ContentReference.IsNullOrEmpty(siteTrashBin.ContentLink))
-            //        contentRepository.Move(e.ContentLink, siteTrashBin.ContentLink);
-            //}
             if (e.Content != null)
             {
                 ITrashBin siteTrashBin = this.contentRepository.GetChildren<IContent>(SiteDefinition.Current.StartPage)
@@ -66,7 +55,7 @@ namespace MultisiteRecycleBin
                     if (siteTrashBin != null && !ContentReference.IsNullOrEmpty(siteTrashBin?.ContentLink))
                     {
                         var originalParent = ((MoveContentEventArgs)e).OriginalParent;
-                        if (!originalParent.CompareToIgnoreWorkID(siteTrashBin?.ContentLink))
+                        if (!originalParent.CompareToIgnoreWorkID(siteTrashBin.ContentLink))
                         {
                             this.contentRepository.Move(e.ContentLink, siteTrashBin.ContentLink);
                         }
