@@ -8,7 +8,7 @@ namespace MultisiteRecycleBin
         public SiteTrashBinEditorDescription()
             : base("epi-iconTrash")
         {
-            DefaultView = CmsViewNames.AllPropertiesView;
+            DefaultView = CmsViewNames.ContentListingView;
         }
     }
 }

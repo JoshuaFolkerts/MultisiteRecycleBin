@@ -7,7 +7,8 @@ namespace MultisiteRecycleBin
     [ServiceConfiguration(typeof(ViewConfiguration))]
     public class SiteTrashBinGridView : SearchContentView<SiteTrashBinPage>
     {
-        public SiteTrashBinGridView() : base()
+        public SiteTrashBinGridView()
+            : base()
         {
             this.IconClass = "epi-iconTrash";
         }

@@ -19,6 +19,10 @@ namespace MultisiteRecycleBin
 
         private const string siteBinUrlSegment = "__sitetrashbin";
 
+        private IContentRepository contentRepository;
+
+        private ISiteDefinitionRepository siteDefinitionRepository;
+
         public void Initialize(InitializationEngine context)
         {
             if (_isInitialized)
@@ -28,43 +32,61 @@ namespace MultisiteRecycleBin
 
             var locator = context.Locate.Advanced;
             var contentEvents = context.Locate.ContentEvents();
-            var contentRepository = context.Locate.ContentRepository();
-            var siteDefinitionRepository = locator.GetInstance<ISiteDefinitionRepository>();
+            this.contentRepository = context.Locate.ContentRepository();
+            this.siteDefinitionRepository = locator.GetInstance<ISiteDefinitionRepository>();
 
             var events = locator.GetInstance<IContentEvents>();
             events.MovedContent += DeleteEvent_MovedContent;
-            this.CreateSiteBinFolders(siteDefinitionRepository, contentRepository);
+            this.CreateSiteBinFolders();
 
             _isInitialized = true;
         }
 
         private void DeleteEvent_MovedContent(object sender, EPiServer.ContentEventArgs e)
         {
-            if (e.TargetLink.CompareToIgnoreWorkID(ContentReference.WasteBasket) && !(e.Content is ITrashBin))
-            {
-                var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
+            //if (e.TargetLink.CompareToIgnoreWorkID(ContentReference.WasteBasket) && !(e.Content is ITrashBin))
+            //{
+            //    var contentRepository = ServiceLocator.Current.GetInstance<IContentRepository>();
 
-                var siteTrashBin = contentRepository.GetChildren<PageData>(SiteDefinition.Current.StartPage)
+            //    var siteTrashBin = contentRepository.GetChildren<PageData>(SiteDefinition.Current.StartPage)
+            //        .OfType<ITrashBin>()
+            //        .FirstOrDefault();
+
+            //    if (siteTrashBin != null && !ContentReference.IsNullOrEmpty(siteTrashBin.ContentLink))
+            //        contentRepository.Move(e.ContentLink, siteTrashBin.ContentLink);
+            //}
+            if (e.Content != null)
+            {
+                ITrashBin siteTrashBin = this.contentRepository.GetChildren<IContent>(SiteDefinition.Current.StartPage)
                     .OfType<ITrashBin>()
                     .FirstOrDefault();
 
-                if (siteTrashBin != null && !ContentReference.IsNullOrEmpty(siteTrashBin.ContentLink))
-                    contentRepository.Move(e.ContentLink, siteTrashBin.ContentLink);
+                if (e.TargetLink.CompareToIgnoreWorkID(ContentReference.WasteBasket))
+                {
+                    if (siteTrashBin != null && !ContentReference.IsNullOrEmpty(siteTrashBin?.ContentLink))
+                    {
+                        var originalParent = ((MoveContentEventArgs)e).OriginalParent;
+                        if (!originalParent.CompareToIgnoreWorkID(siteTrashBin?.ContentLink))
+                        {
+                            this.contentRepository.Move(e.ContentLink, siteTrashBin.ContentLink);
+                        }
+                    }
+                }
             }
         }
 
-        public void CreateSiteBinFolders(ISiteDefinitionRepository siteDefinitionRepository, IContentRepository contentRepository)
+        public void CreateSiteBinFolders()
         {
-            foreach (var siteDefinition in siteDefinitionRepository.List())
+            foreach (var siteDefinition in this.siteDefinitionRepository.List())
             {
-                var siteBin = contentRepository.GetBySegment(siteDefinition.StartPage, "__sitetrashbin", LanguageSelector.AutoDetect());
+                var siteBin = this.contentRepository.GetBySegment(siteDefinition.StartPage, "__sitetrashbin", LanguageSelector.AutoDetect());
 
                 if (siteBin == null)
                 {
-                    var trashBin = contentRepository.GetDefault<SiteTrashBinPage>(siteDefinition.StartPage);
+                    var trashBin = this.contentRepository.GetDefault<SiteTrashBinPage>(siteDefinition.StartPage);
                     trashBin.Name = "Waste Basket";
                     trashBin.URLSegment = siteBinUrlSegment;
-                    contentRepository.Save(trashBin, SaveAction.Publish, AccessLevel.NoAccess);
+                    this.contentRepository.Save(trashBin, SaveAction.Publish, AccessLevel.NoAccess);
                 }
             }
         }

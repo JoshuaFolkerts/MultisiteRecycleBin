@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="TrashBinEventInitialization.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="EPiServer.Labs.GridView" Version="0.5.0" />
   </ItemGroup>
 

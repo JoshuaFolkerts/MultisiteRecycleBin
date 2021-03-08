@@ -18,6 +18,7 @@ namespace MultisiteRecycleBin
             {
                 AllowShowDescendants = true,
                 ContentStatusVisible = true,
+
                 Columns = new ColumnsListBuilder()
                     .WithContentName()
                     .WithContentStatus()

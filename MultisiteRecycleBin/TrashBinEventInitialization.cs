@@ -18,23 +18,9 @@ namespace MultisiteRecycleBin
             var events = context.Locate.Advanced.GetInstance<IContentEvents>();
             this.contentRepository = context.Locate.ContentRepository();
             events.MovedContent += MovedContent;
-            events.DeletedContent += DeletedContent;
         }
 
-        private void DeletedContent(object sender, DeleteContentEventArgs e)
-        {
-            if (e.Content != null)
-            {
-                ITrashBin siteTrashBin = this.contentRepository.GetChildren<IContent>(SiteDefinition.Current.StartPage)
-                    .OfType<ITrashBin>()
-                    .FirstOrDefault();
-                if (e.TargetLink.CompareToIgnoreWorkID(ContentReference.WasteBasket))
-                {
-                }
-            }
-        }
-
-        private void MovedContent(object sender, EPiServer.ContentEventArgs e)
+        private void MovedContent(object sender, ContentEventArgs e)
         {
             if (e.Content != null)
             {
@@ -42,14 +28,15 @@ namespace MultisiteRecycleBin
                     .OfType<ITrashBin>()
                     .FirstOrDefault();
 
-                var ancestors = this.contentRepository.GetAncestors(e.ContentLink);
                 if (e.TargetLink.CompareToIgnoreWorkID(ContentReference.WasteBasket))
                 {
-                    if (siteTrashBin != null && !ContentReference.IsNullOrEmpty(siteTrashBin.ContentLink))
+                    if (siteTrashBin != null && !ContentReference.IsNullOrEmpty(siteTrashBin?.ContentLink))
                     {
-                        this.contentRepository.Move(e.ContentLink, siteTrashBin.ContentLink);
-                        e.CancelAction = true;
-                        e.CancelReason = "Finsihed Moving To Site Trash Bin";
+                        var originalParent = ((MoveContentEventArgs)e).OriginalParent;
+                        if (!originalParent.CompareToIgnoreWorkID(siteTrashBin?.ContentLink))
+                        {
+                            this.contentRepository.Move(e.ContentLink, siteTrashBin.ContentLink);
+                        }
                     }
                 }
             }
@@ -59,7 +46,6 @@ namespace MultisiteRecycleBin
         {
             var events = context.Locate.Advanced.GetInstance<IContentEvents>();
             events.MovedContent -= MovedContent;
-            events.DeletedContent -= DeletedContent;
         }
     }
 }
