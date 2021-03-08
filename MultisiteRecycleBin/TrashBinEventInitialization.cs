@@ -3,6 +3,7 @@ using EPiServer.Core;
 using EPiServer.Framework;
 using EPiServer.Framework.Initialization;
 using EPiServer.Web;
+using System;
 using System.Linq;
 
 namespace MultisiteRecycleBin
@@ -15,20 +16,41 @@ namespace MultisiteRecycleBin
         public void Initialize(InitializationEngine context)
         {
             var events = context.Locate.Advanced.GetInstance<IContentEvents>();
-            events.MovedContent += DeleteEvent_MovedContent;
             this.contentRepository = context.Locate.ContentRepository();
+            events.MovedContent += MovedContent;
+            events.DeletedContent += DeletedContent;
         }
 
-        private void DeleteEvent_MovedContent(object sender, EPiServer.ContentEventArgs e)
+        private void DeletedContent(object sender, DeleteContentEventArgs e)
         {
-            if (e.TargetLink.CompareToIgnoreWorkID(ContentReference.WasteBasket))
+            if (e.Content != null)
             {
-                var siteTrashBin = this.contentRepository.GetChildren<PageData>(SiteDefinition.Current.StartPage)
+                ITrashBin siteTrashBin = this.contentRepository.GetChildren<IContent>(SiteDefinition.Current.StartPage)
                     .OfType<ITrashBin>()
                     .FirstOrDefault();
-                if (siteTrashBin != null && !ContentReference.IsNullOrEmpty(siteTrashBin.ContentLink))
+                if (e.TargetLink.CompareToIgnoreWorkID(ContentReference.WasteBasket))
                 {
-                    this.contentRepository.Move(e.ContentLink, siteTrashBin.ContentLink);
+                }
+            }
+        }
+
+        private void MovedContent(object sender, EPiServer.ContentEventArgs e)
+        {
+            if (e.Content != null)
+            {
+                ITrashBin siteTrashBin = this.contentRepository.GetChildren<IContent>(SiteDefinition.Current.StartPage)
+                    .OfType<ITrashBin>()
+                    .FirstOrDefault();
+
+                var ancestors = this.contentRepository.GetAncestors(e.ContentLink);
+                if (e.TargetLink.CompareToIgnoreWorkID(ContentReference.WasteBasket))
+                {
+                    if (siteTrashBin != null && !ContentReference.IsNullOrEmpty(siteTrashBin.ContentLink))
+                    {
+                        this.contentRepository.Move(e.ContentLink, siteTrashBin.ContentLink);
+                        e.CancelAction = true;
+                        e.CancelReason = "Finsihed Moving To Site Trash Bin";
+                    }
                 }
             }
         }
@@ -36,7 +58,8 @@ namespace MultisiteRecycleBin
         public void Uninitialize(InitializationEngine context)
         {
             var events = context.Locate.Advanced.GetInstance<IContentEvents>();
-            events.MovedContent -= DeleteEvent_MovedContent;
+            events.MovedContent -= MovedContent;
+            events.DeletedContent -= DeletedContent;
         }
     }
 }
